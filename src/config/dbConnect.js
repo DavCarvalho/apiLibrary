@@ -1,9 +1,9 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-mongoose.connect("mongodb+srv://dawwi:davi2003@node-express.hjt0uqu.mongodb.net/node-alura");
+mongoose.connect(process.env.STRING_CONNECTION_DB);
 
 let db = mongoose.connection;
 
 mongoose.set('strictQuery', true);
 
-export default db
+export default db;

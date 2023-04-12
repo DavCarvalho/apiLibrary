@@ -1,60 +1,67 @@
-import authors from "../models/Author.js";
+import mongoose from 'mongoose';
+import authors from '../models/Author.js';
 
 class AuthorController {
-  static listAuthors = (req, res) => {
-    authors.find((err, authors) => {
-      res.status(200).json(authors);
-    })
-  }
+	static listAuthors = async (req, res) => {
+		const resultAuthors = await authors.find();
+		res.status(200).json(resultAuthors);
+	};
 
-  static listAuthorPerId = (req, res) => {
-    const id = req.params.id;
+	static listAuthorPerId = async(req, res) => {
+		try {
+			const id = req.params.id;
+			const resultAuthors = await authors.findById(id);
 
-    authors.findById(id, (err, authors) => {
-      if(err) {
-        res.status(400).send({message: `${err.message} id not localized`})
-      } else {
-        res.status(200).send(authors)
-      }
-    })
-  }
+			if(resultAuthors !== null) {
+				res.status(200).send(resultAuthors);
+			} else {
+				res.status(400).send({message: 'id not localized'});
+			}
+		}catch(error){																			
+			if(error instanceof mongoose.Error.CastError){ //we passed an invalid string and it doesn't match what mongoose expected
+																									
+				res.status(400).send({message: 'one or more data provided is incorrect'});
+			} else {
+				res.status(500).send({message: 'internal server error'});
+			}
+		}
+		
+	};
+	//The CastError is an internal Mongoose error that we can access and check if the error we get is an instance of CastError. 
+	static createAuthor= async (req, res) => {
+		
+		try {
+			let author = new authors(req.body);
 
-  static createAuthor= (req, res) => {
-    let author = new authors(req.body);
+			const resultAuthor = await author.save();
+			res.status(201).send(resultAuthor.toJSON());
+		}catch(error) {
+			res.status(500).send({message: `${error.message} = failed create a new author`});
+		}
+		
+	};
 
-    author.save(err => {
-      if(err) {
-        res.status(500).send({message: `${err.message} = failed create a new author`});
-      } else {
-        res.status(201).send(author.toJSON());
-      }
-    })
-  }
+	static updateAuthor = async(req, res) => {
+		try {
+			const id = req.params.id; 
 
-  static updateAuthor = (req, res) => {
-    const id = req.params.id; 
+			await authors.findByIdAndUpdate(id, {$set: req.body});
+			res.status(200).send({message: 'Livro cadastrado com sucesso'});
+		}catch(error) {
+			res.status(500).send(`${error.message} - failed update book`);
+		}
+	};
 
-    authors.findByIdAndUpdate(id, {$set: req.body}, (err) => {
-      if(!err){
-        res.status(200).send({message: `Livro cadastrado com sucesso`})
-      } else {
-        res.status(500).send(`${err.message} - failed update book`)
-      }
-    })
-  }
+	static deleteAuthor = async(req, res) => {
+		try {
+			const id = req.params.id;
 
-  static deleteAuthor = (req, res) => {
-    const id = req.params.id;
-
-    authors.findByIdAndDelete(id, (err) => {
-      if(!err) {
-        res.status(200).send({message: "Book deleted with sucess"})
-      } else {
-        res.status(500).send({message: `${err.message} failed delete book`})
-      }
-    })
-  }
-
+			await authors.findByIdAndDelete(id);
+			res.status(200).send({message: 'Book deleted with sucess'});
+		}catch(error) {
+			res.status(500).send({message: `${error.message} failed delete book`});
+		}
+	};
 }
 
 export default AuthorController;
