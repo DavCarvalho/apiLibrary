@@ -1,22 +1,28 @@
-import books from '../models/Books.js';
+import NotFound from '../errors/NotFound.js';
+import { books } from '../models/index.js';
 
 class BookController {
-	static listBooks = async(req, res) => {
+	static listBooks = async(req, res, next) => {
 		try {
 			const resultListBooks = await books.find().populate('author').exec();
 			
 			res.status(200).json(resultListBooks);
 		}catch(error) {
-			res.status(500).json({ message: 'Erro interno no servidor' });
+			next(error);
 		}
 	};
 
-	static listBookPerId = async (req, res) => {
+	static listBookPerId = async (req, res,next) => {
 		try {
 			const id = req.params.id;
 
       const resultListBook = await books.findById(id) .populate('author', 'name').exec();
-			res.status(200).send(resultListBook);
+
+			if(resultListBook !== null) {
+				res.status(200).send(resultListBook);
+			} else {
+				next(new NotFound('id book not localized'));
+			}
 		} catch(error) {
 			res.status(400).send({message: `${error.message} id not localized`});
 		}
@@ -34,25 +40,36 @@ class BookController {
 		}
 	};
 
-	static updateBook = async (req, res) => {
+	static updateBook = async (req, res, next) => {
 		try {
 			const id = req.params.id; 
 
-			books.findByIdAndUpdate(id, {$set: req.body});
-			res.status(200).send({message: 'Livro cadastrado com sucesso'});
+			const resultLBook = await books.findByIdAndUpdate(id, {$set: req.body});
+
+			if(resultLBook !== null) {
+				res.status(200).send({message: 'Livro cadastrado com sucesso'});
+			} else {
+				next(new NotFound('id not localized'));
+			}
 		} catch(error) {
-			res.status(500).send(`${error.message} - failed update book`);
+			next(error);
 		}	
 	};
 
-	static deleteBook = async(req, res) => {
+	static deleteBook = async(req, res, next) => {
 		try {
 			const id = req.params.id;
 
-			await books.findByIdAndDelete(id);
-			res.status(200).send({message: 'Book deleted with sucess'});
+			const resultBook =	await books.findByIdAndDelete(id);
+
+			if(resultBook !== null) {
+				res.status(200).send({message: 'Book deleted with sucess'});
+			} else {
+				next(new NotFound('id not localized'));
+			}
+			
 		}catch(error) {
-			res.status(500).send({message: `${error.message} failed delete book`});
+			next(error);
 		}
 	};
 

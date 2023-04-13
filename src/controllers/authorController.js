@@ -1,5 +1,5 @@
-
-import authors from '../models/Author.js';
+import NotFound from '../errors/NotFound.js';
+import { authors } from '../models/index.js';
 
 class AuthorController {
 	static listAuthors = async (req, res) => {
@@ -15,7 +15,7 @@ class AuthorController {
 			if(resultAuthors !== null) {
 				res.status(200).send(resultAuthors);
 			} else {
-				res.status(400).send({message: 'id not localized'});
+				next(new NotFound('Id not localized'));
 			}
 		}catch(error){																			
 			next(error);
@@ -23,38 +23,56 @@ class AuthorController {
 		
 	};
 
-	static createAuthor= async (req, res) => {
+	static createAuthor= async (req, res,next) => {
 		
 		try {
 			let author = new authors(req.body);
 
 			const resultAuthor = await author.save();
-			res.status(201).send(resultAuthor.toJSON());
+
+			if(resultAuthor !== null) {
+				res.status(201).send(resultAuthor.toJSON());
+			} else {
+				next(new NotFound('id not localizes'));
+			}
+
+			
 		}catch(error) {
-			res.status(500).send({message: `${error.message} = failed create a new author`});
+			next(error);
 		}
 		
 	};
 
-	static updateAuthor = async(req, res) => {
+	static updateAuthor = async(req, res,next) => {
 		try {
-			const id = req.params.id; 
+			const id = req.params.id;
+			
+			const resultAuthor = await authors.findByIdAndUpdate(id, {$set: req.body});
 
-			await authors.findByIdAndUpdate(id, {$set: req.body});
-			res.status(200).send({message: 'Livro cadastrado com sucesso'});
+			if(resultAuthor !== null) {
+				res.status(200).send({message: 'Livro cadastrado com sucesso'});
+			}else {
+				next(new NotFound('id not localizes'));
+			}
+
 		}catch(error) {
-			res.status(500).send(`${error.message} - failed update book`);
+			next(error);
 		}
 	};
 
-	static deleteAuthor = async(req, res) => {
+	static deleteAuthor = async(req, res, next) => {
 		try {
 			const id = req.params.id;
 
-			await authors.findByIdAndDelete(id);
-			res.status(200).send({message: 'Book deleted with sucess'});
+			const resultAuthor = await authors.findByIdAndDelete(id);
+
+			if(resultAuthor !== null) {
+				res.status(200).send({message: 'Book deleted with sucess'});
+			} else {
+				next(new NotFound('id not localizes'));
+			}
 		}catch(error) {
-			res.status(500).send({message: `${error.message} failed delete book`});
+			next(error);
 		}
 	};
 }
