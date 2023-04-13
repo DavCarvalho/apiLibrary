@@ -1,5 +1,5 @@
 import NotFound from '../errors/NotFound.js';
-import { books } from '../models/index.js';
+import { authors, books } from '../models/index.js';
 
 class BookController {
 	static listBooks = async(req, res, next) => {
@@ -49,7 +49,7 @@ class BookController {
 			if(resultLBook !== null) {
 				res.status(200).send({message: 'Livro cadastrado com sucesso'});
 			} else {
-				next(new NotFound('id not localized'));
+				next(new NotFound('id book not localized'));
 			}
 		} catch(error) {
 			next(error);
@@ -65,7 +65,7 @@ class BookController {
 			if(resultBook !== null) {
 				res.status(200).send({message: 'Book deleted with sucess'});
 			} else {
-				next(new NotFound('id not localized'));
+				next(new NotFound('id book not localized'));
 			}
 			
 		}catch(error) {
@@ -73,17 +73,66 @@ class BookController {
 		}
 	};
 
-	static listBookPerCompany = async (req, res) => {
+	static listBookPerFilter = async (req, res,next) => {
 		try {
-			const company = req.query.company;
+			
+			const search = await processSearch(req.query);
 
-			const resultBooks = await books.find({'company': company}, {});
-			res.status(200).send(resultBooks);
+			if(search !== null) {
+				const resultBooks = await books.find(search).populate('author');
+				res.status(200).send(resultBooks);
+			} else {
+				next(new NotFound('id book not localized'));
+			}
 		}catch(error) {
-			res.status(400).send({message: `${error.message}  Company not found`});
+			next(error);
 		}
-	};
+
+	async function processSearch(params) {
+			const {company, title, minPages, maxPages, nameAuthor} = params;
+
+			let search = {};
+
+			if(company) search.company = company;
+			if(title) search.title =  {$regex: title, $options: 'i'}; //I or i
+
+			if(minPages || maxPages) {
+				search.numberOfPages = {};
+			}
+			// gte = Greater Than or Equal
+			if(minPages) search.numberOfPages.$gte = minPages;
+			// lte = Less Than or Equal
+			if(maxPages) search.numberOfPages.$lte = maxPages;
+
+			if(nameAuthor) {
+				const author = await authors.findOne({name: nameAuthor});
+
+			if(author !== null) {
+				search.author = author._id;
+			} else {
+				search = null;
+			}
+		}
+
+		return search;
+	}
+};
+
+	/*
+	This syntax of placing several properties in the same object will make us look for a document that meets all these fields. The book must have the same publisher and title sought.
+
+	now we want to be able to filter only by title or publisher
+
+	for this search to be more dynamic we can const regex = new RegExp(titulo, "i");
+	or for moongose
+	*/
 }
 
 
 export default BookController;
+
+/*
+The **`populate()`** method in Mongoose is used to load references (or nested references) from documents into other collections. When we use **`populate()`** we can specify a reference field in a model and Mongoose will fetch the data from the related document and add it to the main document.
+
+For example, in the provided code, the **`populate('author')`** method is used to load the author data of the book. This means that instead of just getting the author ID from the query result, Mongoose will fetch the author details and add those details to the result. The result will include the full author object instead of just the ID.
+*/
