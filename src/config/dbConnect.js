@@ -4,6 +4,7 @@ mongoose.connect(process.env.STRING_CONNECTION_DB);
 
 let db = mongoose.connection;
 
-mongoose.set('strictQuery', true);
+mongoose.set('strictQuery', false);
+
 
 export default db;
