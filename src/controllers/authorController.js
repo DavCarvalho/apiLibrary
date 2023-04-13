@@ -2,9 +2,16 @@ import NotFound from '../errors/NotFound.js';
 import { authors } from '../models/index.js';
 
 class AuthorController {
-	static listAuthors = async (req, res) => {
-		const resultAuthors = await authors.find();
-		res.status(200).json(resultAuthors);
+	static listAuthors = async (req, res,next) => {
+		try {
+			const resultAuthors = await authors.find();
+
+			req.result = resultAuthors;
+
+			next();
+		} catch(error) {
+			next(error);
+		}
 	};
 
 	static listAuthorPerId = async(req, res,next) => {

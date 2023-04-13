@@ -1,12 +1,16 @@
+
 import NotFound from '../errors/NotFound.js';
 import { authors, books } from '../models/index.js';
 
 class BookController {
 	static listBooks = async(req, res, next) => {
 		try {
-			const resultListBooks = await books.find().populate('author').exec();
+			const resultListBooks =  books.find(); //the await keyword before books.find(), as we don't want the search to be performed now in the 		database. Our goal is to store it and then send it to the pagination middleware
 			
-			res.status(200).json(resultListBooks);
+			req.result = resultListBooks;
+
+			next();
+			
 		}catch(error) {
 			next(error);
 		}
@@ -80,9 +84,12 @@ class BookController {
 
 			if(search !== null) {
 				const resultBooks = await books.find(search).populate('author');
-				res.status(200).send(resultBooks);
+				
+				req.result = resultBooks;
+
+				next();
 			} else {
-				next(new NotFound('id book not localized'));
+				res.status(200).send([]);
 			}
 		}catch(error) {
 			next(error);
@@ -132,6 +139,12 @@ class BookController {
 export default BookController;
 
 /*
+*** pagination When a person requests all registered books, we can only return the first 10 results. If she wants to consult the next 10 elements, we will make a new request to retrieve the next 10 books.
+we will use the skip() method to indicate how many books we want to skip.
+For example, if the person requests page 2, we'll skip the first 5 books. If she requests page 3, we skip 10 books, and so on.
+After the skip(), we will apply the limit() method, passing the limit received as a search parameter. Thus, we will limit the amount of books displayed on the screen. Without it, we'd just skip the first few elements and show the rest of the results all the way down:
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
 The **`populate()`** method in Mongoose is used to load references (or nested references) from documents into other collections. When we use **`populate()`** we can specify a reference field in a model and Mongoose will fetch the data from the related document and add it to the main document.
 
 For example, in the provided code, the **`populate('author')`** method is used to load the author data of the book. This means that instead of just getting the author ID from the query result, Mongoose will fetch the author details and add those details to the result. The result will include the full author object instead of just the ID.
